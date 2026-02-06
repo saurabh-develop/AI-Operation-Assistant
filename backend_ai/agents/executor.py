@@ -1,29 +1,22 @@
-# backend_ai/agents/executor.py
-
 from tools.weather_tools import WeatherTool
 from tools.github_tools import GitHubTool
-
+from core.errors import ExecutorError, ToolError
 
 class ExecutorAgent:
     def __init__(self):
-        # Initialize real tools
         self.weather_tool = WeatherTool()
         self.github_tool = GitHubTool()
 
-        # Tool registry
         self.tools = {
             "weather_api": self._weather_api,
             "github_search": self._github_search,
         }
 
-        # LLM → internal tool aliases
         self.tool_aliases = {
-            # Weather
             "weather": "weather_api",
             "weatherapi": "weather_api",
             "weather_api": "weather_api",
 
-            # GitHub / Search
             "github": "github_search",
             "githubsearch": "github_search",
             "github_search": "github_search",
@@ -35,22 +28,27 @@ class ExecutorAgent:
     def execute(self, plan: dict) -> list:
         results = []
 
-        for step in plan.get("steps", []):
+        for idx, step in enumerate(plan.get("steps", [])):
             raw_tool = step.get("tool", "")
             normalized = raw_tool.strip().lower()
             tool_name = self.tool_aliases.get(normalized)
 
             print("EXECUTING TOOL:", normalized, "→", tool_name)
 
-            if tool_name not in self.tools:
-                raise ValueError(
-                    f"Tool '{raw_tool}' not supported. "
-                    f"Supported tools: {list(self.tools.keys())}"
+           
+            if not tool_name:
+                raise ExecutorError(
+                    f"Unsupported tool '{raw_tool}'",
+                    details={"step": idx}
                 )
-
-            params = step.get("params", {})
-            output = self.tools[tool_name](params)
-
+            try:
+                params = step.get("params", {})
+                output = self.tools[tool_name](params)
+            except Exception as e:
+                raise ToolError(
+                    f"Tool '{tool_name}' failed",
+                    details={"error": str(e), "step": idx}
+                )
             results.append({
                 "tool": tool_name,
                 "output": output
@@ -58,14 +56,14 @@ class ExecutorAgent:
 
         return results
 
-    # -------- REAL TOOL WRAPPERS --------
-
     def _weather_api(self, params: dict) -> dict:
         city = params.get("city")
         if not city:
-            raise ValueError("weather_api requires 'city' param")
-
-        return self.weather_tool.get_weather(city)
+            raise ToolError("weather_api requires 'city' parameter")
+        try:
+            return self.weather_tool.get_weather(city)
+        except Exception as e:
+            raise ToolError("Weather API request failed", {"city": city})
 
     def _github_search(self, params: dict) -> list:
         query = params.get("query")

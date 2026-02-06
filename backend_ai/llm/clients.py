@@ -28,7 +28,6 @@ IMPORTANT:
 
         text = response.text.strip()
 
-        # 🛡️ Defensive JSON extraction
         start = text.find("{")
         end = text.rfind("}") + 1
 

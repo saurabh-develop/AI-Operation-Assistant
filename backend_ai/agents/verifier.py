@@ -1,5 +1,6 @@
 from llm.clients import LLMClient
 import json
+from core.errors import VerifierError
 
 
 class VerifierAgent:
@@ -20,7 +21,7 @@ class VerifierAgent:
             raise ValueError("Execution result must be a list")
 
         if len(execution_result) != expected_steps:
-            raise ValueError("Execution incomplete: step count mismatch")
+            raise VerifierError("Execution incomplete: step count mismatch")
 
         for idx, step_result in enumerate(execution_result):
             if not isinstance(step_result, dict):
