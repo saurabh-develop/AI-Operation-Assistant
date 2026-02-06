@@ -1,22 +1,28 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from agents.planner import PlannerAgent
+from core.orchestrator import Orchestrator
+import traceback
 
-app = FastAPI(title="AI Operations Assistant")
+app = FastAPI(title="AI Operation Assistant")
 
-planner = PlannerAgent()
+
+orchestrator = Orchestrator()
+
 
 class TaskRequest(BaseModel):
-    task:str
+    task: str
 
-class PlanResponse(BaseModel):
-    plan: dict
+class TaskResponse(BaseModel):
+    result: dict
 
-@app.post("/plan", response_model=PlanResponse)
-
-def generate_plan(req: TaskRequest):
+@app.post("/run-task", response_model=TaskResponse)
+def run_task(req: TaskRequest):
     try:
-        plan = planner.create_plan(req.task)
-        return {"plan": plan}
+        result = orchestrator.run(req.task)
+        return {"result": result}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

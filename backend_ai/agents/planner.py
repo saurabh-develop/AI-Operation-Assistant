@@ -1,15 +1,17 @@
 from llm.clients import LLMClient
-from llm.prompts import PLANNER_SYSTEM_PROMT, PLANNER_USER_PROMPT
+from llm.prompts import PLANNER_SYSTEM_PROMPT, PLANNER_USER_PROMPT
 import json
+
 
 class PlannerAgent:
     def __init__(self):
-        self.llm = LLMClient()
-    
-    def create_plan(self, task: str)-> dict:
+        self.llm = LLMClient()  
+
+
+    def create_plan(self, task: str) -> dict:
         response = self.llm.chat(
-            system_prompt = PLANNER_SYSTEM_PROMT,
-            user_prompt = PLANNER_USER_PROMPT.format(task=task)
+            system_prompt=PLANNER_SYSTEM_PROMPT,
+            user_prompt=PLANNER_USER_PROMPT.format(task=task)
         )
         try:
             plan = json.loads(response)

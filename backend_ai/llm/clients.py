@@ -1,22 +1,38 @@
-import os 
-import google.generativeai as genai
+import os
+from google import genai
 
 class LLMClient:
     def __init__(self):
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
-    
-    def chat(self, system_prompt: str, user_promt:str)->str:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY not found")
+
+        self.client = genai.Client(api_key=api_key)
+
+    def chat(self, system_prompt: str, user_prompt: str) -> str:
         prompt = f"""
 {system_prompt}
 
-{user_promt}
+{user_prompt}
+
+IMPORTANT:
+- Output ONLY valid JSON
+- No markdown
+- No explanations
 """
-        response = self.model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0,
-                "response_mime_type": "application/json"
-            }
+
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
         )
-        return response.text.strip()
+
+        text = response.text.strip()
+
+        # 🛡️ Defensive JSON extraction
+        start = text.find("{")
+        end = text.rfind("}") + 1
+
+        if start == -1 or end == -1:
+            raise ValueError(f"Invalid Gemini response: {text}")
+
+        return text[start:end]
